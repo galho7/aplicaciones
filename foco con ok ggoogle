@@ -1,0 +1,55 @@
+#include <WiFi.h>
+#include <SinricPro.h>
+#include <SinricProSwitch.h>
+
+/* ===== CONFIGURACIÓN WIFI ===== */
+#define WIFI_SSID "MECATRONICA_3ABC"
+#define WIFI_PASS "MEC2025@."
+
+/* ===== CONFIGURACIÓN SINRIC ===== */
+const String APP_KEY = "1314b85e-7673-4a5b-8477-a24902647731";        // reemplaza con tu App Key de SinricPro
+const String APP_SECRET = "681c5fd9-19f8-42a3-a70b-c6fad5bf41c4-d8f2764e-9c17-47c5-ba02-c0bb544592b7";  // reemplaza con tu App Secret de SinricPro
+const String DEVICE_ID = "6998dae817b32c0941c0ca89";    // reemplaza con el ID de tu foco
+
+/* ===== PIN DEL RELÉ ===== */
+#define RELAY_PIN 5  // cambia este pin según tu conexión
+
+/* ===== FUNCIONES ===== */
+bool onPowerState(const String &deviceId, bool &state) {
+  Serial.printf("Dispositivo: %s - Comando recibido: %s\n", deviceId.c_str(), state ? "ON" : "OFF");
+  
+  // Lógica invertida: relé activo bajo
+  if(state) {
+    digitalWrite(RELAY_PIN, LOW);  // enciende relé
+  } else {
+    digitalWrite(RELAY_PIN, HIGH); // apaga relé
+  }
+  return true;
+}
+
+void setup() {
+  Serial.begin(115200);
+  
+  pinMode(RELAY_PIN, OUTPUT);
+  digitalWrite(RELAY_PIN, HIGH); // relé apagado al inicio (activo bajo)
+
+  // Conexión WiFi
+  WiFi.begin(WIFI_SSID, WIFI_PASS);
+  Serial.print("Conectando a WiFi...");
+  while(WiFi.status() != WL_CONNECTED) {
+    delay(500);
+    Serial.print(".");
+  }
+  Serial.println("Conectado!");
+
+  // Configuración SinricPro
+  SinricProSwitch &mySwitch = SinricPro[DEVICE_ID];
+  mySwitch.onPowerState(onPowerState);
+
+  SinricPro.begin(APP_KEY, APP_SECRET);
+  Serial.println("Conectando a SinricPro...");
+}
+
+void loop() {
+  SinricPro.handle();
+}
