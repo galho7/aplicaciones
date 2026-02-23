@@ -1,0 +1,18 @@
+int Relay =4;  
+
+void setup() {
+  // put your setup code here, to run once:
+  Serial.begin(9600);
+  Serial.println("Hello, ESP32!");
+  pinMode(Relay, OUTPUT);
+}
+
+void loop() {
+  // put your main code here, to run repeatedly:
+  digitalWrite(Relay, HIGH); // Turn On the LED
+  if(digitalRead(Relay)==1){ Serial.println("ON");}
+  delay(500); // this speeds up the simulation
+  digitalWrite(Relay, LOW);  // Turn Off the LED
+  if(digitalRead(Relay)==0){ Serial.println("OFF");}
+  delay(500);
+}
