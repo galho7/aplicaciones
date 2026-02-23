@@ -1,0 +1,45 @@
+#include <WiFi.h>
+#include <ThingerESP32.h>
+
+/* ========= THINGER.IO ========= */
+#define USERNAME "jordyquizhpi23"
+#define DEVICE_ID "rele"
+#define DEVICE_CREDENTIAL "20260026"
+
+/* ========= WIFI ========= */
+#define SSID "Patricio_Quizhpi"
+#define SSID_PASSWORD "0107290744"
+
+/* ========= PIN ========= */
+// Usamos el PIN 4 para evitar conflictos de subida (error 0xb)
+#define RELE 4 
+
+ThingerESP32 thing(USERNAME, DEVICE_ID, DEVICE_CREDENTIAL);
+
+void setup() {
+  Serial.begin(115200);
+  
+  // Forzamos el estado BAJO (LOW) antes de configurar como salida
+  // Esto asegura que el relé permanezca APAGADO al arrancar
+  digitalWrite(RELE, LOW); 
+  pinMode(RELE, OUTPUT);
+
+  thing.add_wifi(SSID, SSID_PASSWORD);
+
+  // Recurso Thinger: Ahora ON en la web enviará un HIGH al pin
+  thing["RELE"] << [](pson & in) {
+    if (in.is_empty()) {
+      in = (digitalRead(RELE) == HIGH); 
+    } else {
+      // Si marcas ON en el celular, envía HIGH (Enciende)
+      // Si marcas OFF en el celular, envía LOW (Apaga)
+      digitalWrite(RELE, in ? HIGH : LOW);
+    }
+  };
+
+  Serial.println("ESP32 Listo. Relé iniciado en estado: APAGADO");
+}
+
+void loop() {
+  thing.handle();
+}
