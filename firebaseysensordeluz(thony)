@@ -1,0 +1,48 @@
+import network
+import urequests
+from machine import Pin
+import time
+
+# WiFi
+ssid = "RED MECATRONICA"
+password = "MECA2026@."
+
+# Firebase (NUEVO PROYECTO)
+url = "https://consola-sensor-default-rtdb.firebaseio.com/sensor.json"
+
+# Sensor
+sensor = Pin(34, Pin.IN)
+
+# Conectar WiFi
+wifi = network.WLAN(network.STA_IF)
+wifi.active(True)
+wifi.connect(ssid, password)
+
+print("Conectando...")
+while not wifi.isconnected():
+    pass
+
+print("Conectado a WiFi")
+
+# Loop principal
+while True:
+    valor = sensor.value()
+
+    if valor == 0:
+        estado = "NEGRO"
+    else:
+        estado = "BLANCO"
+
+    data = {
+        "estado": estado,
+        "valor": valor
+    }
+
+    try:
+        r = urequests.put(url, json=data)
+        r.close()
+        print("Enviado:", estado)
+    except:
+        print("Error")
+
+    time.sleep(2)
