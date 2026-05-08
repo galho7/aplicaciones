@@ -1,0 +1,94 @@
+/*
+  Práctica: NEO-6M GPS + ESP32
+  Lee: Latitud, Longitud, Altitud, Velocidad, Fecha/Hora, Satélites
+  UART2: RX=GPIO16, TX=GPIO17
+  Baud GPS: 9600 | Baud Serial: 115200
+*/
+#include <HardwareSerial.h>
+#include <TinyGPSPlus.h>
+
+#define GPS_RX  16       // ESP32 RX2 ← GPS TX
+#define GPS_TX  17       // ESP32 TX2 → GPS RX
+#define GPS_BAUD 9600
+
+TinyGPSPlus gps;
+HardwareSerial GPSSerial(2);  // UART2 del ESP32
+
+void setup() {
+  Serial.begin(115200);
+  while (!Serial);
+
+  GPSSerial.begin(GPS_BAUD, SERIAL_8N1, GPS_RX, GPS_TX);
+
+  Serial.println("=== NEO-6M GPS + ESP32 ===");
+  Serial.println("Esperando señal GPS... (puede tardar 1-3 min al aire libre)");
+  Serial.println("------------------------------------------");
+}
+
+void loop() {
+  // Alimentar el parser con todos los bytes disponibles
+  while (GPSSerial.available() > 0) {
+    gps.encode(GPSSerial.read());
+  }
+
+  // Mostrar datos cada 2 segundos
+  static unsigned long lastPrint = 0;
+  if (millis() - lastPrint >= 2000) {
+    lastPrint = millis();
+    printGPSData();
+  }
+
+  // Aviso si no llegan datos NMEA tras 10 segundos
+  if (millis() > 10000 && gps.charsProcessed() < 10) {
+    Serial.println("ERROR: No llegan datos del GPS. Revisa el cableado TX/RX.");
+  }
+}
+
+void printGPSData() {
+  Serial.println("--- GPS ---");
+
+  // Ubicación
+  if (gps.location.isValid()) {
+    Serial.print("Latitud   : ");
+    Serial.println(gps.location.lat(), 6);
+    Serial.print("Longitud  : ");
+    Serial.println(gps.location.lng(), 6);
+  } else {
+    Serial.println("Ubicacion : Sin fix (busca satelites...)");
+  }
+
+  // Altitud
+  if (gps.altitude.isValid()) {
+    Serial.print("Altitud   : ");
+    Serial.print(gps.altitude.meters());
+    Serial.println(" m");
+  }
+
+  // Velocidad
+  if (gps.speed.isValid()) {
+    Serial.print("Velocidad : ");
+    Serial.print(gps.speed.kmph());
+    Serial.println(" km/h");
+  }
+
+  // Satélites visibles
+  if (gps.satellites.isValid()) {
+    Serial.print("Satelites : ");
+    Serial.println(gps.satellites.value());
+  }
+
+  // Fecha y hora UTC
+  if (gps.date.isValid() && gps.time.isValid()) {
+    Serial.printf("Fecha/Hora: %02d/%02d/%04d  %02d:%02d:%02d UTC\n",
+      gps.date.day(), gps.date.month(), gps.date.year(),
+      gps.time.hour(), gps.time.minute(), gps.time.second());
+  }
+
+  // HDOP (precisión horizontal — menor es mejor)
+  if (gps.hdop.isValid()) {
+    Serial.print("HDOP      : ");
+    Serial.println(gps.hdop.hdop());
+  }
+
+  Serial.println("------------------------------------------");
+}
